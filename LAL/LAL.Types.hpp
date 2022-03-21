@@ -1,4 +1,7 @@
-#ifndef HPP_LAL_Types
+#pragma once
+#include "LAL.Platform.hpp"
+
+LAL_NamespaceStart
 
 // Integers
 
@@ -37,18 +40,22 @@ static_assert(sizeof(u64) == 8, "sizeof(u64) != 8");
 using f16 = half;
 #endif
 
-using f32 = float ;
+using f32 = float;
 using f64 = double;
 
 // Pointers
 
 template<typename Type>
-using ptr = Type*;
+using p = Type*;
+
+#ifdef Compiler_MSVC
+typedef decltype(__nullptr)		nullptrType;
+// TODO : Add other compiler implementations here.
+#endif
 
 // Addressing Op Wrappers
 
 #define dref  *
 #define ptrof &
 
-#define HPP_LAL_Types
-#endif
+LAL_NamespaceEnd

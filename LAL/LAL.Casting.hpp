@@ -1,3 +1,4 @@
+#pragma once
 #ifndef HPP_LAL_Casting
 
 #define ocast(Type_, Obj_)	(*(Type_*))(&Obj_)

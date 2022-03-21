@@ -1,6 +1,5 @@
-#include "OSAL.Platform.hpp"
-
 #define BACKEND_UNIT
+#include "OSAL.Platform.hpp"
 #include "API.Infoware.hpp"
 
 namespace OSAL

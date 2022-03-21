@@ -1,5 +1,4 @@
-export module OSAL;
-#ifndef HPP_OSAL
+#pragma once
 
 namespace OSAL
 {
@@ -9,5 +8,3 @@ namespace OSAL
 	void PollEvents();
 }
 
-#define HPP_OSAL
-#endif

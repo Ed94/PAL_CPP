@@ -1,8 +1,15 @@
-#ifndef HPP_C_STL
+#pragma once
+#ifndef ALLOW_POLLUTION
+static_assert(false, 
+	"This file CANNOT be used outside of backend units. "
+	"This file CAN POLLUTE global scope heavily."
+);
+#endif
+
+#include "API.Windows.hpp"
 
 //#define LAL_Bare_Runtime
 
-#include "OSAL.Platform.hpp"
 
 #if defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic push 
@@ -23,5 +30,3 @@
 #pragma GCC diagnostic pop
 #endif
 
-#define HPP_C_STL
-#endif

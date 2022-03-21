@@ -1,10 +1,23 @@
 /*	Explicit Specifiers
 */
-#ifndef HPP_LAL_Declarations
+#pragma once
 
 // #include "Meta/Config/CoreDev_Config.hpp"
+#include "LAL.Platform.hpp"
 
-// Statics:
+// Analysis :
+
+#if defined(Compiler_MSVC)
+#    define unused_param(x) (__pragma(warning(suppress : 4100))(x))
+
+#elif defined(Compiler_GCC)
+#    define unused_param(x) __attribute__((__unused__))(x)
+
+#else
+#    define unused_param(x) ((void)(zpl_size_of(x)))
+#endif
+
+// Linkage :
 
 // Creates a static duration variable only accessible to the file. (Global scope/File scope only)
 #define InternLink \
@@ -49,5 +62,3 @@ inline
 #define latest_Implementation \
 inline
 
-#define HPP_LAL_Declarations
-#endif
