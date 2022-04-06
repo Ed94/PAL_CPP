@@ -46,10 +46,10 @@ namespace OSAL
 
 #pragma region Allocator API
 	// Allocate memory with specified alignment.
-	p<void>	Alloc_WAlign(sw num, sw alignment);
+	p<void>	Alloc_WithAlign(sw num, sw alignment);
 
 	// Allocate memory and copy data into it with specified alignment.
-	p<void>	Alloc_Copy_WAlign(p<void> source, sw size, sw alignment);
+	p<void>	Alloc_Copy_WithAlign(p<void> source, sw size, sw alignment);
 
 	// Free allocated memory.
 	void Free(p<void> ptr);

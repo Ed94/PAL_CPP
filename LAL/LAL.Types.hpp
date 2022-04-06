@@ -58,4 +58,9 @@ typedef decltype(__nullptr)		nullptrType;
 #define dref  *
 #define ptrof &
 
+// Hi-bit bools
+
+using b16 = s16;
+using b32 = s32;
+
 LAL_NamespaceEnd

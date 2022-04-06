@@ -1,5 +1,6 @@
-#define BACKEND_UNIT
 #include "OSAL.Platform.hpp"
+
+#define ALLOW_POLLUTION
 #include "API.Infoware.hpp"
 
 namespace OSAL
