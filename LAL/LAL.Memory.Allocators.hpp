@@ -27,7 +27,7 @@ EAllocatorFlag : sw
 };
 
 
-using AllocatorProc = p<void>(p<void> Data, EAllocOp op, sw size, sw alignment, p<void> oldMemory, sw oldSize, u64 flags);
+using AllocatorProc = p<void>(p<void> data, EAllocOp op, sw size, sw alignment, p<void> oldMemory, sw oldSize, u64 flags);
 
 constexpr sw	DefaultAlignment		= OSAL::DefaultAlignment;
 constexpr u32 	DefaultAllocatorFlags	= u32(EAllocatorFlag::ClearToZero);
@@ -65,7 +65,7 @@ struct Allocator
 	// Allocate memory and copy data into it with specified alignment.
 	template<class Type> p<Type>
 	Alloc_Copy_WithAlign(p<void> source, sw num, sw alignment) {
-		return Format_ByCopy<Type>(Alloc_WithAlign(num, alignment), source, num);
+		return Copy<Type>(Alloc_WithAlign(num, alignment), source, num);
 	}
 
 	// Free allocated memory.
@@ -118,14 +118,14 @@ Alloc_WithAlign(sw num, sw alignment) {
 // Warning: This does not perform initialization!
 template<class Type> p<Type> 
 Alloc_Copy(p<Type> source, sw num) {
-	return Format_ByCopy<Type>(Alloc<Type>(num), source, num);
+	return Copy<Type>(Alloc<Type>(num), source, num);
 }
 
 // Allocate memory of Type and copy providedAddr to it (with specified alignment). (Assumes objects are stored in contigous space)
 // Warning: This does not perform initialization!
 template<class Type> p<Type> 
 Alloc_Copy_WithAlign(p<void> source, sw num, sw alignment)	{
-	return Format_ByCopy<Type>(OSAL::Alloc_WithAlign(num, alignment), source, num);
+	return Copy<Type>(OSAL::Alloc_WithAlign(num, alignment), source, num);
 }
 
 // Free allocated memory.
@@ -247,7 +247,7 @@ public:
 	// Allocate memory and copy data into it with specified alignment.
 	template<class Type> p<Type>
 	Alloc_Copy_WithAlign(p<void> source, sw num, sw alignment) {
-		return Format_ByCopy<Type>(Alloc_WithAlign(num, alignment), source, num);
+		return Copy<Type>(Alloc_WithAlign(num, alignment), source, num);
 	}
 
 	// Free allocated memory.
@@ -347,7 +347,7 @@ public:
 	// Allocate memory and copy data into it with specified alignment.
 	template<class Type> p<Type>
 	Alloc_Copy_WithAlign(p<void> source, sw num, sw alignment) {
-		return Format_ByCopy<Type>(Alloc_WithAlign(num, alignment), source, num);
+		return Copy<Type>(Alloc_WithAlign(num, alignment), source, num);
 	}
 
 	// Free allocated memory.
@@ -414,11 +414,9 @@ struct ScratchHeaderEV
 	void Fill(p<void> data, sw size);
 };
 #pragma endregion Scratch - Ring Buffer based arena
-};
 
 #pragma region Implementation
-namespace Memory
-{
+
 #pragma region Heap
 void 
 HeapStatus::Init()

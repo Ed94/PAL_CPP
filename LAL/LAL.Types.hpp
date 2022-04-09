@@ -43,6 +43,14 @@ using f16 = half;
 using f32 = float;
 using f64 = double;
 
+// Chars
+
+using ascii	 = char;
+using wchar  = wchar_t;
+using char8  = u8;
+using char16 = u16;
+using char32 = u32;
+
 // Pointers
 
 template<typename Type>
@@ -57,6 +65,17 @@ typedef decltype(__nullptr)		nullptrType;
 
 #define dref  *
 #define ptrof &
+
+template<class Type> Type*
+addressof(Type& value) noexcept
+{
+	return 
+		rcast<Type*>(& 
+			ccast<char&>( 
+				rcast<const volatile char&>(value)
+			)
+		);
+}
 
 // Hi-bit bools
 

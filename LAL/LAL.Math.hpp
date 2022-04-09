@@ -3,6 +3,7 @@
 #include "LAL.Config.hpp"
 #include "LAL.Metaprogramming.hpp"
 
+
 #ifndef HPP_LAL_MATH
 LAL_NamespaceStart
 

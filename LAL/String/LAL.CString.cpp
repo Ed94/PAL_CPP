@@ -29,8 +29,12 @@ EFormat : u32
 
 	Done = bit(30),
 
-	Ints = Char | Short | Int | Long | LLong | Size | IntPtr
+	Ints = Char | Short | Int | Long | LLong | Size | IntPtr,
+
+	TTrait_Enum_AreBitFlags
 };
+
+//u32 operator | (EFormat a, EFormat b) { return (u32)a | (u32)b; }
 
 struct FormatInfo
 {
@@ -48,13 +52,15 @@ sw Format_CharRepeated(p<char> string_out, sw maxLength, p<FormatInfo> info, cha
 NeverInline	sw
 Format_VA(p<char> string_out, sw maxLength, p<char const> format, va_list vargs)
 {
+#define current		dref format
+
 	p<char const> start = string_out;
 
 	sw 
 	remaining = maxLength, 
 	result;
 
-	while (char current = dref format)
+	while (current)
 	{
 		sw length = 0;
 
@@ -76,57 +82,122 @@ Format_VA(p<char> string_out, sw maxLength, p<char const> format, va_list vargs)
 				switch (dref ++ format)
 				{
 					case '-':
-						info.Flags |= (u32)EFormat::Minus;
+						info.Flags |= EFormat::Minus;
 					break;
 
 					case '+':
-						info.Flags |= (u32)EFormat::Plus;
+						info.Flags |= EFormat::Plus;
 					break;
 
 					case '#':
-						info.Flags |= (u32)EFormat::Alt;
+						info.Flags |= EFormat::Alt;
 					break;
 
 					case ' ':
-						info.Flags |= (u32)EFormat::Space;
+						info.Flags |= EFormat::Space;
 					break;
 
 					case '0':
-						info.Flags |= (u32)EFormat::Zero | (u32)EFormat::Width;
+						info.Flags |= EFormat::Zero | EFormat::Width;
 					break;
 
 					default:
-						info.Flags |= (u32)EFormat::Done;
+						info.Flags |= EFormat::Done;
 					break;
 				}
 			}
-			while (! (info.Flags & (u32)EFormat::Done));
+			while (! (info.Flags & EFormat::Done));
+		}
 
-			if (dref format == '*')
+		// Optional Width
+		if (current == '*')
+		{
+			int width = va_arg(vargs, int);
+
+			if (width < 0)
 			{
-				int width = va_arg(vargs, int);
+				info.Flags |= EFormat::Minus;
+				info.Width = -width;
+			}
+			else
+			{
+				info.Width = width;
+			}
 
-				if (width < 0)
-				{
-					info.Flags |= (u32)EFormat::Minus;
-					info.Width = -width;
-				}
-				else
-				{
-					info.Width = width;
-				}
+			info.Flags |= EFormat::Width;
+			format++;
+		}
+		else
+		{
+			info.Width = (u32)	To_s64(format, p< p<char>>(ptrof format), 10);
 
-				info.Flags |= (u32)EFormat::Width;
+			if (info.Width != 0)
+				info.Flags |= EFormat::Width;
+		}
+
+		// Optional Precision
+		if (current == '.')
+		{
+			format++;
+
+			if (current == '*')
+			{
+				info.Precision = va_arg(vargs, int);
 				format++;
 			}
 			else
 			{
-				info.Width = (u32)	To_s64(format, p< p<char>> & format, 10));
+				info.Precision = (s32) To_s64(format, p< p<char>>(ptrof format), 10);
 			}
 
+			info.Flags &= EFormat::Zero;
+		}
 
+		switch (current++)
+		{
+			case 'h':
+				if (current == 'h')
+				{
+					info.Flags |= EFormat::Char;
+					format++;
+				}
+				else
+				{
+					info.Flags |= EFormat::Long;
+				}
+			break;
+
+			case 'l':
+				if (current == 'l')
+				{
+					info.Flags |= EFormat::Minus;
+					format++;
+				}
+				else
+				{
+					info.Flags |= EFormat::Long;
+				}
+			break;
+
+			case 'z' :
+				info.Flags |= EFormat::Unsigned;
+			[[fallthrough]]
+			case 't':
+				info.Flags |= EFormat::Size;
+			break;
+
+			default: 
+				format--;
+			break;
+		}
+
+		switch (current)
+		{
+			
 		}
 	}
+
+#undef current;
 }
 
 s64 To_s64(p<char const> string, p< p<char>> end, s32 base)
@@ -172,6 +243,7 @@ s64 To_s64(p<char const> string, sw length, p< p<char>> end, s32 base)
 	return value;
 }
 
+// TODO: (zpl) Make Better
 u64 To_u64(p<char const> string, p< p<char>> end, s32 base)
 {
 	sw	length = 0;
@@ -228,7 +300,7 @@ Scan_s64(p<char const> string, s32 base, p<s64> value)
 			string++;
 		}
 	}
-	else
+	else // Hex
 	{
 		for (;;)
 		{
@@ -256,9 +328,54 @@ Scan_s64(p<char const> string, s32 base, p<s64> value)
 }
 
 InternLink sw
-Scan_u64(p<char const> string, s32 base, p<s64> value)
+Scan_u64(p<char const> string, s32 base, p<u64> value)
 {
+	p<char const> start = string;
 
+	u64 result = 0;
+
+	if (base == 16 && Compare(string, "0x", 2) == 0)
+		string += 2;
+
+	if (base == 10)
+	{
+		for (;;)
+		{
+			u64 value;
+
+			if (IsDigit(dref string))
+				value = dref string - '0';
+
+			else
+				break;
+
+			result *= base;
+			result += value;
+			string++;
+		}
+	}
+	else // Hex
+	{
+		for (;;)
+		{
+			u64 value;
+
+			if (IsHex(dref string))
+				value = HexTo_s32(dref string);
+
+			else
+				break;
+
+			result *= base;
+			result += value;
+			string++;
+		}
+	}
+
+	if (value)
+		dref value = result;
+
+	return (string - start);
 }
 
 InternLink sw
@@ -340,12 +457,12 @@ Format_Str(p<char> string_out, sw maxLength, p<FormatInfo> info, p<char const> s
 	else
 		length = Length(string_in);
 
-	if (info->Width == 0 && info->Flags & (u32)EFormat::Width)
+	if (info->Width == 0 && info->Flags & EFormat::Width)
 	{
 		return result;
 	}
 
-	if (info->Width == 0 || info->Flags & (u32)EFormat::Minus)
+	if (info->Width == 0 || info->Flags & EFormat::Minus)
 	{
 		if (info->Precision > 0)
 			length = info->Precision < length ? info->Precision : length;
@@ -356,7 +473,7 @@ Format_Str(p<char> string_out, sw maxLength, p<FormatInfo> info, p<char const> s
 		if (info->Width > result)
 		{
 			sw   padding = info->Width - length;
-			char pad	 = (info->Flags & (u32)EFormat::Zero) ? '0' : ' ';
+			char pad	 = (info->Flags & EFormat::Zero) ? '0' : ' ';
 
 			while (padding > 0 && remaining > 0)
 			{
@@ -375,7 +492,7 @@ Format_Str(p<char> string_out, sw maxLength, p<FormatInfo> info, p<char const> s
 		if (info->Width > result)
 		{
 			sw   padding = info->Width - length;
-			char pad	 = (info->Flags & (u32)EFormat::Zero) ? '0' : ' ';
+			char pad	 = (info->Flags & EFormat::Zero) ? '0' : ' ';
 
 			while (padding > 0 && remaining > 0)
 			{
@@ -391,10 +508,10 @@ Format_Str(p<char> string_out, sw maxLength, p<FormatInfo> info, p<char const> s
 		result += Copy(string_out, string_in, length);
 	}
 
-	if (info->Flags & (u32)EFormat::Upper)
+	if (info->Flags & EFormat::Upper)
 		ToUpper(begin);
 
-	else if (info->Flags & (u32)EFormat::Lower)
+	else if (info->Flags & EFormat::Lower)
 		ToLower(begin);
 
 	return result;
@@ -422,12 +539,12 @@ Format_Str(p<char> string_out, sw maxLength, p<FormatInfo> info, p<char const> s
 	if (length != 0 && info->Precision < length)
 		length = info->Precision;
 
-	if (info->Width == 0 && info->Flags & (u32)EFormat::Width)
+	if (info->Width == 0 && info->Flags & EFormat::Width)
 	{
 		return result;
 	}
 
-	if (info->Width == 0 || info->Flags & (u32)EFormat::Minus)
+	if (info->Width == 0 || info->Flags & EFormat::Minus)
 	{
 		if (info->Precision > 0)
 			length = info->Precision < length ? info->Precision : length;
@@ -438,7 +555,7 @@ Format_Str(p<char> string_out, sw maxLength, p<FormatInfo> info, p<char const> s
 		if (info->Width > result)
 		{
 			sw   padding = info->Width - length;
-			char pad	 = (info->Flags & (u32)EFormat::Zero) ? '0' : ' ';
+			char pad	 = (info->Flags & EFormat::Zero) ? '0' : ' ';
 
 			while (padding > 0 && remaining > 0)
 			{
@@ -456,7 +573,7 @@ Format_Str(p<char> string_out, sw maxLength, p<FormatInfo> info, p<char const> s
 		if (info->Width > result)
 		{
 			sw   padding = info->Width - length;
-			char pad	 = (info->Flags & (u32)EFormat::Zero) ? '0' : ' ';
+			char pad	 = (info->Flags & EFormat::Zero) ? '0' : ' ';
 
 			while (padding > 0 && remaining > 0)
 			{
@@ -472,10 +589,10 @@ Format_Str(p<char> string_out, sw maxLength, p<FormatInfo> info, p<char const> s
 		result += Copy(string_out, string_in, length);
 	}
 
-	if (info->Flags & (u32)EFormat::Upper)
+	if (info->Flags & EFormat::Upper)
 		ToUpper(begin);
 
-	else if (info->Flags & (u32)EFormat::Lower)
+	else if (info->Flags & EFormat::Lower)
 		ToLower(begin);
 
 	return result;

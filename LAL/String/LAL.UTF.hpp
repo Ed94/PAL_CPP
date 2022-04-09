@@ -4,7 +4,7 @@
 #include "LAL.Types.hpp"
 
 LAL_NamespaceStart
-namespace UTF8
+namespace UTF
 {
 	using rune = u32;
 
@@ -17,7 +17,7 @@ namespace UTF8
 }
 
 #pragma region Implementation
-namespace UTF8
+namespace UTF
 {
 	inline sw
 	Length(p<char const> string, sw maxLength)

@@ -15,12 +15,6 @@ namespace Memory {
 constexpr uw   ones  = (uw)  -1 / u8_Max;
 constexpr sw   highs = (ones * (u8_Max / 2 + 1));
 
-ForceInline bool 
-HasZero(sw value)
-{
-	return (((value) - ones) & ~(value) & highs);
-}
-
 ForceInline p<void>
 Align_Forward(p<void> address, sw alignment)
 {
@@ -63,9 +57,19 @@ Compare(p<void const> segA, p<void const> segB, sw size)
 	return 0;
 }
 
+template<class Type>
+ForceInline p<Type>
+Copy(p<Type> address, p<Type const> source, uw count)
+{
+	if constexpr (! IsSame<Type, void>())
+		count *= sizeof(Type);
+
+	return memcpy(address, source, count);
+}
+
 template<class Type> 
 ForceInline p<Type>
-Format_ByFill(p<Type> address, Type fillValue, uw count)
+Fill(p<Type> address, Type fillValue, uw count)
 {
 	if (address == nullptr) 
 		return nullptr;
@@ -147,26 +151,22 @@ Format_ByFill(p<Type> address, Type fillValue, uw count)
 
 template<class Type>
 ForceInline p<Type>
-Format_ByCopy(p<Type> address, p<Type const> source, uw count)
-{
-	if constexpr (! IsSame<Type, void>())
-		count *= sizeof(Type);
-
-	return memcpy(address, source, count);
-}
-
-template<class Type>
-ForceInline p<Type>
 Format_WithZero(p<Type> address, uw count)
 {
-	return Format_ByFill<Type>(address, 0, count);
+	return Fill<Type>(address, 0, count);
 }
 
 template<class Type> 
 ForceInline p<Type>
 Format_ZeroItem(Type& item)
 {
-	return rcast<p<Type>>(Format_ByFill<u8>(rcast<p<u8>>(ptrof item), 0, sizeof(Type)));
+	return rcast<p<Type>>(Fill<u8>(rcast<p<u8>>(ptrof item), 0, sizeof(Type)));
+}
+
+ForceInline bool 
+HasZero(sw value)
+{
+	return (((value) - ones) & ~(value) & highs);
 }
 
 template<class Type>
@@ -187,7 +187,7 @@ Move(p<Type> address, p<Type const> source, uw count)
 
 	// NOTE: Non-overlapping
 	if (srcBytes + count <= addrBytes || addrBytes + count <= srcBytes) 
-		return Format_ByCopy(address, source, count);
+		return Copy(address, source, count);
 
 	if (addrBytes < srcBytes) 
 	{
@@ -241,34 +241,37 @@ Move(p<Type> address, p<Type const> source, uw count)
 	return address;
 }
 
-ForceInline p<void>
-Ptr_AddBytes(p<void> address, sw bytes)
+namespace Ptr
 {
-	return rcast< p<void>>(rcast< p<u8>>(address) + bytes);
-}
+	ForceInline p<void>
+	AddBytes(p<void> address, sw bytes)
+	{
+		return rcast< p<void>>(rcast< p<u8>>(address) + bytes);
+	}
 
-ForceInline p<void const>
-Ptr_AddBytes(p<void const> address, sw bytes)
-{
-	return rcast< p<void const>>(rcast< p<u8 const>>(address) + bytes);
-}
+	ForceInline p<void const>
+	AddBytes(p<void const> address, sw bytes)
+	{
+		return rcast< p<void const>>(rcast< p<u8 const>>(address) + bytes);
+	}
 
-ForceInline p<void>
-Ptr_SubBytes(p<void> address, sw bytes)
-{
-	return rcast< p<void>>(rcast< p<u8>>(address) - bytes);
-}
+	ForceInline p<void>
+	SubBytes(p<void> address, sw bytes)
+	{
+		return rcast< p<void>>(rcast< p<u8>>(address) - bytes);
+	}
 
-ForceInline p<void const>
-Ptr_SubBytes(p<void const> address, sw bytes)
-{
-	return rcast< p<void const>>(rcast< p<u8 const>>(address) - bytes);
-}
+	ForceInline p<void const>
+	SubBytes(p<void const> address, sw bytes)
+	{
+		return rcast< p<void const>>(rcast< p<u8 const>>(address) - bytes);
+	}
 
-ForceInline sw
-Ptr_ByteDiff(p<void const> ptrA, p<void const> ptrB)
-{
-	return sw(p<u8 const>(ptrB) - p<u8 const>(ptrA));
+	ForceInline sw
+	ByteDiff(p<void const> ptrA, p<void const> ptrB)
+	{
+		return sw(p<u8 const>(ptrB) - p<u8 const>(ptrA));
+	}
 }
 
 ForceInline p<void const>

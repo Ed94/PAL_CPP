@@ -4,6 +4,7 @@
 #endif
 #ifndef HPP_LAL_Bits
 
+#include "LAL/LAL.Casting.hpp"
 #include "LAL.Metaprogramming.hpp"
 
 LAL_NamespaceStart
@@ -15,38 +16,25 @@ bit(Representation pos)
 	return 1 << pos;
 }
 
-#pragma region BitmaskableTraits
-template<typename Enum, typename = void>	struct TIsBitmaskable : TFalse {};
-template<typename Enum>						struct TIsBitmaskable<Enum, HasMemberSymbol(Enum::SpecifyBitmaskable)> : TIsEnum<Enum> {};
+#pragma region Trait
+template<class Enum, class = void>	struct TAreBitFlags : TFalse {};
+template<class Enum>				struct TAreBitFlags<Enum, HasMemberSymbol(Enum::TTrait_Enum_AreBitFlags)> : TIsEnum<Enum> {};
 
-template<typename Enum>	
-constexpr bool IsBitmaskable = TIsBitmaskable<Enum>::Value;
+template<class Enum>	
+constexpr bool AreBitFlags = TAreBitFlags<Enum>::Value && scast<uw>(Enum::TTrait_Enum_AreBitFlags) > uw(0) ? true : false;
 
-template <typename Enum>
-constexpr EnableIf<IsBitmaskable<Enum>, bool> 
-Bitmaskable() noexcept {
-	return scast<uw>(Enum::SpecifyBitmaskable) > uw(0) ? true : false;
-}
-
-template <typename Enum> 
-constexpr EnableIf<! IsBitmaskable<Enum>, bool> 
-Bitmaskable() noexcept {
-	return false;
-}
-#pragma endregion BitmaskableTraits
+template<class Enum>
+concept TBitFlags = AreBitFlags<Enum>;
+#pragma endregion Trait
 
 /**
 A wrapper object for bitfields that allows for typesafe bitmask operations.
 */
-template<class EType, class NativeRep>
+template<TBitFlags EType, class NativeRep>
 struct Bitfield
 {
-private:
-	static_assert(Bitmaskable<EType>(), "EnumType must be of Bitmaskable type.");
-
-	using Type = Bitfield<EType, NativeRep>;
-
 public:
+	using Type = Bitfield<EType, NativeRep>;
 
 	using Enum           = EType;
 	using Representation = NativeRep;
@@ -58,28 +46,28 @@ public:
 	Bitfield(Representation field) : bitfield(field)
 	{}
 
-	template<typename... BitTypes>
+	template<class... BitTypes>
 	constexpr
 	Bitfield(const BitTypes... bits) : bitfield(0)
 	{
 		bitfield = (Representation(bits) | ...);
 	}
 
-	template<typename... BitType>
+	template<class... BitType>
 	ForceInline
 	void Add(const BitType... bits)
 	{
 		bitfield |= (Representation(bits) | ...);
 	}
 
-	template<typename... BitType>
+	template<class... BitType>
 	ForceInline
 	bool CheckForEither(const BitType... bits) const
 	{
 		return (bitfield & (Representation(bits) | ...)) != 0;
 	}
 
-	template<typename... BitType>
+	template<class... BitType>
 	ForceInline
 	void Clear(const BitType... bits)
 	{
@@ -95,7 +83,7 @@ public:
 		return (bitfield & Representation(bit)) == Representation(bit);
 	}
 
-	template<typename... BitType>
+	template<class... BitType>
 	ForceInline
 	bool HasExactly(const BitType... bits) const
 	{
@@ -120,14 +108,14 @@ public:
 		bitfield = 0; 
 	}
 
-	template<typename... BitType>
+	template<class... BitType>
 	ForceInline
 	void Set(const BitType... bits)
 	{
 		bitfield = (Representation(bits) | ...);
 	}
 
-	template<typename... BitType>
+	template<class... BitType>
 	ForceInline
 	void Toggle(const BitType... bits)
 	{
@@ -183,6 +171,22 @@ public:
 	Representation bitfield;
 #pragma endregion Vars
 };
+
+#pragma region TypeSafeOps
+#define TBitFlagsDef\
+		template<TIntegral NativeT, TBitFlags Enum>
+
+TBitFlagsDef NativeT operator &= (NativeT& ref, const Enum other) { return ref &= (NativeT) other; }
+TBitFlagsDef NativeT operator |= (NativeT& ref, const Enum other) { return ref |= (NativeT) other; }
+
+TBitFlagsDef constexpr NativeT operator & (NativeT a, Enum b) { return (NativeT)a & (NativeT)b; }
+TBitFlagsDef constexpr NativeT operator | (NativeT a, Enum b) { return (NativeT)a | (NativeT)b; }
+
+template<TBitFlags Enum> constexpr sw operator & (Enum a, Enum b) { return (sw)a & (sw)b; }
+template<TBitFlags Enum> constexpr sw operator | (Enum a, Enum b) { return (sw)a | (sw)b; }
+
+#undef TBitFlagsDef
+#pragma endregion TypeSafeOps
 
 LAL_NamespaceEnd
 #define HPP_LAL_Bits

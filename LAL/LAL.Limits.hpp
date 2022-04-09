@@ -78,5 +78,6 @@ constexpr f32 CentiAccuracy = 0.01f;
 constexpr f32 MilliAccuracy = 0.001f;
 constexpr f32 MicroAccuracy = 0.00001f;
 constexpr f64 NanoAccuracy  = 0.00000001f;
+#pragma endregion Floats
 
 LAL_NamespaceEnd
